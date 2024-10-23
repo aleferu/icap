@@ -6,4 +6,8 @@ env/
 venv/
 .idea/
 .vscode/
-
+*.pdf
+*.aux
+*.log
+*.out
+*.toc
