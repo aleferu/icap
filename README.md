@@ -5,7 +5,7 @@ Repositorio para la contribución de los alumnos implicados en este proyecto.
 ## Participantes
 
 - Dayana Quispe Huanca.
-- Daniel García.
+- Daniel Fernández.
 - Alejandro Fernández Sánchez.
 
 ## Estructura
