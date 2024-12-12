@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Creates the neccesary bucket and lambda function.
+
+####################
+# Parameters section
+####################
+
+Parameters:
+  IAMRoleName:
+    Description: IAM role used for the lambda function
+    Type: String
+    Default: LabRole
+
+###################
+# Resources section
+###################
+
+Resources:
+
+  ## Bucket
+
+  LandingZoneBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: proy-landing
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt LambdaFunction.Arn
+
+  ## Lambda
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: proy-lambda
+      Handler: index.lambda_handler
+      Runtime: python3.12
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${IAMRoleName}
+      Code:
+        ZipFile: |
+          import boto3
+
+          def lambda_handler(event, context):
+            # Aquí va el código de Dayana
+            pass
+
+  LambdaPermission:  # Le da permiso al bucket para que haga la cosa
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
