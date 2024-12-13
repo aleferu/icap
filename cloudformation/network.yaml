@@ -2,26 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   Creates the network's infraestructure and creates the ECR repo.
 
-####################
-# Parameters section
-####################
-
-Parameters:
-  IAMProfile:
-    Description: PREVIOUSLY existing IAM Instance Profile
-    Type: String
-    Default: LabInstanceProfile
-
-  ECRUsername:
-    Description: Username used in ECR
-    Type: String
-    Default: AWS
-
-  ECRPassword:
-    Description: Password used in ECR
-    Type: String
-    Default: 592806013290.dkr.ecr.us-east-1.amazonaws.com
-
 ###################
 # Resources section
 ###################
@@ -201,67 +181,19 @@ Resources:
     Properties:
       RepositoryName: proyrepo
 
-  ## Instance
+###################
+# Resources section
+###################
 
-  # TODO: Cuando sepamos que está bien deberíamos eliminar ese "docker run"
-  # TODO: Esta instancia no está ejecutando correctamente el servidor. why?
+Outputs:
+  PublicSubnet1Id:
+    Description: Public Subnet 1 ID
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: proy-PublicSubnet1Id
 
-  Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      ImageId: ami-08a0d1e16fc3f61ea
-      # KeyName: proy-testkp
-      IamInstanceProfile: !Ref IAMProfile
-      NetworkInterfaces:
-        - GroupSet:
-            - !Ref TestInstanceSG
-          AssociatePublicIpAddress: true
-          DeviceIndex: 0
-          DeleteOnTermination: true
-          SubnetId: !Ref PublicSubnet1
-      Tags:
-        - Key: Name
-          Value: proy-TestInstance
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-
-          dnf update -y
-          dnf -y install docker
-          sudo systemctl start docker
-          sudo systemctl enable docker
-
-          sudo echo "
-          Flask
-          " > /etc/profile.d/requirements.txt
-
-          sudo echo "
-          from flask import Flask
-
-          app = Flask(__name__)
-
-          @app.route('/')
-          def hello():
-            return "Hello, world!"
-
-          if __name__ ==  '__main__':
-            app.run(debug=True, host='0.0.0.0', port=80)
-          " > /etc/profile.d/flask_app.py
-
-          sudo echo "
-          #syntax = docker/dockerfile:1.4
-          FROM python:3.9-alpine
-          WORKDIR /app
-          COPY requirements.txt requirements.txt
-          RUN pip3 install -r requirements.txt
-          COPY flask_app.py flask_app.py
-          CMD [\"python\", \"flask_app.py\"]
-          " > /etc/profile.d/Dockerfile
-
-          sudo docker build -t proy_flask_container /etc/profile.d/
-          sudo docker run -p 80:80 -d proy_flask_container
-
-          sudo aws ecr get-login-password --region us-east-1 | sudo docker login --username ${ECRUsername} --password-stdin ${ECRPassword}
-          sudo docker tag proy_flask_container ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/proyrepo:proy_flask_container
-          sudo docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/proyrepo:proy_flask_container
+  TestInstanceSGId:
+    Description: TestInstanceSG ID
+    Value: !Ref TestInstanceSG
+    Export:
+      Name: proy-TestInstanceSGId
