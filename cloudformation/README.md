@@ -14,3 +14,4 @@ Aquí se encontrarán las plantillas *CloudFormation* que se usarán para crear 
 - `databases.yaml`:
   - Bucket donde meter los CSVs.
   - Lambda que se activa cuando se sube un archivo al bucket.
+  - La tabla de DynamoDB.
