@@ -48,7 +48,7 @@ Resources:
     Properties:
       InstanceType: t2.micro
       ImageId: ami-08a0d1e16fc3f61ea
-      KeyName: proy-testkp
+      # KeyName: proy-testkp
       IamInstanceProfile: !Ref IAMProfile
       NetworkInterfaces:
         - GroupSet:
