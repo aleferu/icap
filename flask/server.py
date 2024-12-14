@@ -9,51 +9,57 @@ import numpy as np
 app = Flask(__name__)
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('proy')
+table = dynamodb.Table('proy-stats')
 
 @app.route('/maxdiff')
 def maxdiff():
-    year = request.args.get('year')
-    month = request.args.get('month') 
+    yearmonth = request.args.get('YearMonth') 
 
-    response = table.scan(
-        FilterExpression=Attr('year').eq(str(year)) & Attr('month').eq(str(month))
+    response = table.query(
+        FilterExpression=Attr('YearMonth').eq(yearmonth)
     )
 
-    if response['Count'] == 0:
+    if reponse.get("Items") is None:
         Response("{'a':'b'}", status=404, mimetype='application/json')
     else:
-        temperatures = [t['mean'] for t in response['Items']]
+        temperatures_mean = [t['Mean'] for t in response['Items']]
 
-    return jsonify(max(temperatures) - min(temperatures))
+    return jsonify(max(temperatures_mean) - min(temperatures_mean))
 
 @app.route('/sd')
 def sd():
-    year = request.args.get('year')
-    month = request.args.get('month') 
+    yearmonth = request.args.get('YearMonth') 
 
-    response = table.scan(
-        FilterExpression=Attr('year').eq(str(year)) & Attr('month').eq(str(month))
-    )['Items']
+    response = table.query(
+        FilterExpression=Attr('YearMonth').eq(yearmonth)
+    )
 
-    temperatures = [t['sd'] for t in response]
+    if reponse.get("Items") is None:
+        Response("{'a':'b'}", status=404, mimetype='application/json')
+    else:
+        temperatures_Deviation = [t['Deviation'] for t in response]
+    
 
-    std = max(temperatures)
+    Deviation = max(temperatures_Deviation)
 
-    return jsonify(std)
+    return jsonify(Deviation)
 
 @app.route('/temp'):
 def temp():
-    year = request.args.get('year')
-    month = request.args.get('month') 
+    yearmonth = request.args.get('YearMonth') 
 
-    response = table.scan(
-        FilterExpression=Attr('year').eq(str(year)) & Attr('month').eq(str(month))
+    response = table.query(
+        FilterExpression=Attr('YearMonth').eq(yearmonth)
     )
 
-    temperatures = [t['mean'] for t in response]
+    if reponse.get("Items") is None:
+        Response("{'a':'b'}", status=404, mimetype='application/json')
+    else:
+        temperatures_mean = [t['Mean'] for t in response]
 
-    return np.mean(temperatures)
+    
+
+    return np.mean(temperatures_mean)
 
 
 if __name__ == '__main__':)
