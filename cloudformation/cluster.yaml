@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The template used to create an ECS Cluster from the ECS Console.
+
+####################
+# Parameters section
+####################
+
+Parameters:
+
+  SecurityGroupIds:
+    Description: Security group/s for the cluster.
+    Type: CommaDelimitedList
+
+  VpcId:
+    Type: String
+    Description: ID of an existing VPC in which to launch your container instances
+    AllowedPattern: ^(?:vpc-[0-9a-f]{8,17}|)$
+    ConstraintDescription: VPC Id must begin with 'vpc-' and have a valid uuid
+
+  SubnetIds:
+    Type: CommaDelimitedList
+    Description: Comma separated list of existing VPC Subnet Ids where ECS instances will run
+
+  LatestECSOptimizedAMI:
+    Description: AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id
+
+  IAMProfile:
+    Description: PREVIOUSLY existing IAM Instance Profile
+    Type: String
+    Default: LabInstanceProfile
+
+  AccountID:
+    Description: Account ID
+    Type: String
+    AllowedPattern: ^[0-9]{12}$
+    Default: 592806013290
+    ConstraintDescription: Exactly 12 digits
+
+###################
+# Resources section
+###################
+
+Resources:
+
+  ECSLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    DependsOn: ECSCluster
+    Properties:
+      LaunchTemplateName: proy-ECSLaunchTemplate
+      LaunchTemplateData:
+        ImageId: !Ref LatestECSOptimizedAMI
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            DeleteOnTermination: true
+            Groups: !Ref SecurityGroupIds
+        InstanceType: t2.micro
+        IamInstanceProfile:
+          Arn: !Sub arn:aws:iam::${AccountID}:instance-profile/${IAMProfile}
+        UserData: !Base64
+          Fn::Sub:
+            - |-
+              #!/bin/bash
+              echo ECS_CLUSTER=${ClusterName} >> /etc/ecs/ecs.config;
+            - ClusterName: proy-cluster
+
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn: ECSCluster
+    Properties:
+      MinSize: '3'
+      MaxSize: '9'
+      DesiredCapacity: '3'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ECSLaunchTemplate
+        Version: !GetAtt ECSLaunchTemplate.LatestVersionNumber
+      VPCZoneIdentifier: !Ref SubnetIds
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: proy-cluster's ECS Instance
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: proy-cluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: disabled
+      ServiceConnectDefaults:
+        Namespace: proy-cluster
+      Tags:
+        - Key: cluster-ecs
+          Value: proy
+
+  EC2CapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref ECSAutoScalingGroup
+        ManagedScaling:
+          Status: ENABLED
+          TargetCapacity: 100
+        ManagedTerminationProtection: DISABLED
+
+  ClusterCPAssociation:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    DependsOn: ECSCluster
+    Properties:
+      Cluster: proy-cluster
+      CapacityProviders:
+        - !Ref EC2CapacityProvider
+      DefaultCapacityProviderStrategy:
+        - Base: 0
+          Weight: 1
+          CapacityProvider: !Ref EC2CapacityProvider

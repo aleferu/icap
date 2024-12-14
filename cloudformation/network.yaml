@@ -162,7 +162,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow SSH and HTTP Ingress from everywhere
-      GroupName: TestInstanceSG
+      GroupName: proy-TestInstanceSG
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -186,14 +186,38 @@ Resources:
 ###################
 
 Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: proy-VPCId
+
   PublicSubnet1Id:
     Description: Public Subnet 1 ID
     Value: !Ref PublicSubnet1
     Export:
       Name: proy-PublicSubnet1Id
 
+  PublicSubnet2Id:
+    Description: Public Subnet 2 ID
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: proy-PublicSubnet2Id
+
+  PublicSubnet3Id:
+    Description: Public Subnet 3 ID
+    Value: !Ref PublicSubnet3
+    Export:
+      Name: proy-PublicSubnet3Id
+
+  TaskSGId:
+    Description: proy-TaskSecurityGroup ID
+    Value: !Ref SecurityGroupTask
+    Export:
+      Name: proy-TaskSGId
+
   TestInstanceSGId:
-    Description: TestInstanceSG ID
+    Description: proy-TestInstanceSG ID
     Value: !Ref TestInstanceSG
     Export:
       Name: proy-TestInstanceSGId
