@@ -4,12 +4,11 @@ Aquí se encontrará el script que mantenga el servidor HTTP y lo necesario para
 
 ## URIs hechas:
 El argumento year y month es común en todas las URIs.
-- Ejemplo para el año 2009 mes 6: <\/URI deseada>?year=2009&month=06 \\
+
+Ejemplo para el año 2009 mes 6: <\/URI deseada>?year=2009&month=06
 - `/maxdiff`
     - Solicita a la base de datos Dynamodb aquellas filas que coincidan con year y month y devuelve la diferencia entre la temperatura máxima y mínima del mes.
 - `/sd`
     - Solicita a la base de datos Dynamodb aquellas filas que coincidan con year y month y devuelve la desviación calculada a partir de las temperaturas del mes.
 - `/temp`
     - Solicita a la base de datos Dynamodb aquellas filas que coincidan con year y month y devuelve la media calculada a partir de las temperaturas del mes.
-- URIs que faltan:
-    - `/dato` o como sea que se llame la URI si lo hacemos así. Si esto se hace así hará falta un script que coja un CSV y vaya mandando cada fila del CSV al servidor.
