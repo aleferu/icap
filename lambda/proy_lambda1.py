@@ -6,12 +6,19 @@ from decimal import Decimal
 s3 = boto3.resource('s3')
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
+# Connect to SNS 
+sns = boto3.client('sns') 
+alertTopic = 'Temperature Deviation Alert' 
+snsTopicArn = [t['TopicArn'] for t in sns.list_topics()['Topics'] 
+                if t['TopicArn'].lower().endswith(':' + alertTopic.lower())][0] 
+
 # Connect to the DynamoDB table
 stats_table = dynamodb.Table('proy-stats')
 
 def lambda_handler(event, context):
     # Show the incoming event in the debug log 
     print('Event received by Lambda: ' + json.dumps(event, indent=2))
+    
 
     # Extract the bucket name and object key from the event
     bucket = event['Records'][0]['s3']['bucket']['name']
@@ -40,6 +47,20 @@ def lambda_handler(event, context):
                     mean = Decimal(row['Medias'])
                     deviation = Decimal(row['Desviaciones'])
 
+                    if deviation > 0.5:
+                        #Message:
+                        message = (f"Alert: Weekly temperature deviation exceeded threshold with {deviation} deviation, in {date_str}")
+                        
+                        print(f"Sending email alert for record on {date_str}")
+
+                        # Send message to SNS 
+                        sns.publish( 
+                            TopicArn=snsTopicArn, 
+                            Message=message, 
+                            Subject='Temperature Alert!', 
+                            MessageStructure='raw' 
+                        )
+
                     # Convert the date and calculate YearMonth and Day
                     date_obj = datetime.strptime(date_str, '%Y/%m/%d')
                     year_month = 100 * date_obj.year + date_obj.month
@@ -62,4 +83,4 @@ def lambda_handler(event, context):
         raise e
 
     # Finished
-    return f'{row_count} rows processed and inserted into the DynamoDB table.'
+    print(f'{row_count} rows processed and inserted into the DynamoDB table.')
