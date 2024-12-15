@@ -8,7 +8,7 @@ dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
 # Connect to SNS 
 sns = boto3.client('sns') 
-alertTopic = 'Temperature Deviation Alert' 
+alertTopic = 'proy-sns' 
 snsTopicArn = [t['TopicArn'] for t in sns.list_topics()['Topics'] 
                 if t['TopicArn'].lower().endswith(':' + alertTopic.lower())][0] 
 
