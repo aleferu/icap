@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Creates the neccesary bucket and lambda function.
+  Creates the neccesary bucket, lambda function, DynamoDB table, and SNS topic.
 
 ####################
 # Parameters section
@@ -12,6 +12,11 @@ Parameters:
     Type: String
     Default: LabRole
 
+  EmailTarget:
+    Description: Email addresss used by SNS
+    Type: String
+    Default: dayana.quispe@edu.upct.es
+
 ###################
 # Resources section
 ###################
@@ -22,12 +27,28 @@ Resources:
 
   LandingZoneBucket:
     Type: AWS::S3::Bucket
+    DependsOn: LambdaPermission
     Properties:
-      BucketName: proy-landing
+      BucketName: !Sub proy-landing-${AWS::AccountId}-${AWS::Region}
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
             Function: !GetAtt LambdaFunction.Arn
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: LandingZoneBucket
+    Properties:
+      Bucket: !Ref LandingZoneBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${LandingZoneBucket}/*"
 
   ## Lambda
 
@@ -46,12 +67,13 @@ Resources:
             # Aquí va el código de Dayana
             pass
 
-  LambdaPermission:  # Le da permiso al bucket para que haga la cosa
+  LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt LambdaFunction.Arn
       Action: lambda:InvokeFunction
       Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
 
   ## DynamoDB
 
@@ -74,3 +96,13 @@ Resources:
         - AttributeName: Day
           KeyType: RANGE  # Sort Key
       BillingMode: PAY_PER_REQUEST
+
+  # SNS
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: proy-sns
+      Subscription:
+        - Endpoint: !Ref EmailTarget
+          Protocol: email
