@@ -8,9 +8,9 @@ dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
 # Connect to SNS 
 sns = boto3.client('sns') 
-alertTopic = 'proy-sns' 
+stack_name = 'proy-databases' 
 snsTopicArn = [t['TopicArn'] for t in sns.list_topics()['Topics'] 
-                if t['TopicArn'].lower().endswith(':' + alertTopic.lower())][0] 
+                if stack_name in t['TopicArn']][0] 
 
 # Connect to the DynamoDB table
 stats_table = dynamodb.Table('proy-stats')
