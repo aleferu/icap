@@ -7,7 +7,7 @@ import statistics
 
 app = Flask(__name__)
 
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('proy-stats')
 
 def get_yearmonth():
