@@ -105,5 +105,14 @@ def temp():
     }
     return build_ok_json_response(str(result))
 
+@app.errorhandler(404)
+def page_not_found(error):
+    http_code = 404  # Not Found
+    response_json = {
+        'error': 'URI is not valid. Options: /maxdiff , /sd , /temp'
+    }
+    return build_json_response(str(response_json), http_code)
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=80)
