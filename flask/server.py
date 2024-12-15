@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import boto3
-import json
 from flask import Flask, Response, request
 from boto3.dynamodb.conditions import Key
 import statistics
