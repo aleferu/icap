@@ -57,7 +57,7 @@ def maxdiff():
 
     temperatures_mean = [t['Mean'] for t in items]
     result = {
-        'result': max(temperatures_mean) - min(temperatures_mean)
+        'result': float(max(temperatures_mean) - min(temperatures_mean))
     }
     return build_ok_json_response(str(result))
 
@@ -79,7 +79,7 @@ def sd():
     
     temperatures_deviation = [t['Deviation'] for t in items]
     result = {
-        'result': max(temperatures_deviation)
+        'result': float(max(temperatures_deviation))
     }
     return build_ok_json_response(str(result))
 
@@ -101,7 +101,15 @@ def temp():
 
     temperatures_mean = [t['Mean'] for t in items]
     result = {
-        'result': statistics.mean(temperatures_mean)
+        'result': float(statistics.mean(temperatures_mean))
+    }
+    return build_ok_json_response(str(result))
+
+@app.route('/health')
+def health():
+    result = {
+      'status': 'UP',
+      'message': 'Service is healthy'
     }
     return build_ok_json_response(str(result))
 

@@ -210,6 +210,12 @@ Outputs:
     Export:
       Name: proy-PublicSubnet3Id
 
+  ALBSGId:
+    Description: proy-BalancerSecurityGroup
+    Value: !Ref SecurityGroupBalancer
+    Export:
+      Name: proy-ALBSGId
+
   TaskSGId:
     Description: proy-TaskSecurityGroup ID
     Value: !Ref SecurityGroupTask
