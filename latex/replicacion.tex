@@ -1,0 +1,85 @@
+\section{Anexo 1: Replicación}
+
+Todo se despliega a través de CloudFormation, haciendo uso de su sistema de parámetros y salidas. Además, todas las pilas se llamarán igual que el fichero de la plantilla, sin la extensión \texttt{.yaml} y con el prefijo \texttt{proy-}. Para cada plantilla hay que configurar el rol de IAM como \textit{LabRole}.
+
+\subsection{proy-databases}
+
+El primer fichero que se sube se llama \texttt{databases.yaml}. Este fichero se encarga de crear el bucket que recibe los ficheros, la función Lambda que procesa dichos ficheros, la tabla de \textit{DynamoDB} y el tópico de \textit{SNS}. Los dos parámetros que necesita son:
+
+\begin{itemize}
+     \item \underline{IAMRoleName}: Nombre del rol que se asociará a la función Lambda.
+     \item \underline{EmailTarget}: Correo al que se enviará una alerta cuando se encuentre una desviación mayor a $0.5$.
+\end{itemize}
+
+Se recomienda dejar \textit{IAMRoleName} con su valor por defecto, mientras que el email se puede configurar como se guste (mientras sea válido).
+
+No hace falta esperar a que esta plantilla termine para continuar, pues esta plantilla es completamente independiente al resto.
+
+\subsection{proy-network}
+
+El segundo fichero es \texttt{network.yaml}. Esta plantilla se encarga de crear la infraestructura de red que dará soporte a las instancias EC2. En concreto:
+
+\begin{itemize}
+    \item VPC.
+    \item Internet Gateway.
+    \item Tabla de enrutamiento con acceso a internet.
+    \item Tres subredes públicas, cada una en una zona distinta.
+    \item Dos grupos de seguridad, uno para el balanceador de carga y otro para las instancias EC2 y la tarea.
+    \item El repositorio ECR que contendrá el contenedor Docker (creado en el siguiente paso).
+    \item Todo lo necesario para que todo lo anterior se complemente adecuadamente.
+\end{itemize}
+
+Esta plantilla no tiene parámetros, pero sí que tiene salidas. Las salidas son los IDs de la VPC, las subredes, y de los grupos de seguridad.
+
+Los siguientes pasos necesitan del funcionamiento de esta pila.
+
+\subsection{proy-testinstance}
+
+El tercer fichero es \texttt{testinstance.yaml}. Esta plantilla se encarga de crear una instancia que construirá el contenedor Docker y la subirá al contenedor creado en la plantilla anterior. La plantilla necesita cuatro parámetros:
+
+\begin{itemize}
+    \item \underline{ECRPassword}: Contraseña utilizada para el acceso a ECR. Normalmente sigue la estructura siguiente:
+    \begin{itemize}
+        \item \texttt{ACCOUNTID.dkr.ecr.REGION.amazonaws.com} (lo que habría que cambiar son los doce dígitos del principio).
+    \end{itemize}
+    \item \underline{ECRUsername}: Igual para todos, así que no habría que cambiarlo. Se ha dejado como parámetro por si esto lo cambian en el futuro.
+    \item \underline{IAMProfile}: Perfil IAM para la instancia. El valor por defecto es válido.
+    \item \underline{PublicSubnetId}: Cualquier ID de subred creada en la pila anterior.
+\end{itemize}
+
+Una vez que sea seguro que el contenedor está subido, esta pila se puede eliminar, pues ya habría cumplido su propósito y no se necesita su existencia de aquí en adelante. Eso sí, no continuar con el último paso hasta que el contenedor se haya subido, pues es necesario.
+
+\subsection{proy-cluster}
+
+El cuarto y último fichero es \texttt{cluster.yaml}. Esta plantilla se encarga de crear la tarea, los servicios, el balanceador de carga y el cluster ECS. Tiene varios parámetros, y uno de ellos es un poco diferente al resto:
+
+\begin{itemize}
+    \item \underline{ClusterSecurityGroupIds}: ID del grupo de seguridad que usará el clúster.
+    \begin{itemize}
+        \item Salida \texttt{TaskSGId} de \texttt{proy-network}.
+    \end{itemize}
+
+    \item \underline{ALBSecurityGroupIds}: ID del grupo de seguridad que usará el ALB.
+    \begin{itemize}
+        \item Salida \texttt{ALBSGId} de \texttt{proy-network}.
+    \end{itemize}
+
+    \item \underline{VpcId}: ID de la VPC donde el grupo de destino buscará instancias válidas.
+    \begin{itemize}
+        \item Salida \texttt{VPCId} de \texttt{proy-network}.
+    \end{itemize}
+
+    \item \underline{SubnetIds}: IDs separados por comas de las subredes donde el clúster creará las instancias.
+    \begin{itemize}
+        \item Salidas \texttt{PublicSubnet[123]Id} de \texttt{proy-network}.
+        \item Ejemplo: subnet-xxxx,subnet-yyyy,subnet-zzzz
+    \end{itemize}
+
+    \item \underline{LatestECSOptimizedAMI}: ID de una AMI válida. Dejar por defecto.
+
+    \item \underline{IAMProfile}: Perfil IAM usado para la plantilla de despliegue del clúster. Dejar por defecto.
+
+    \item \underline{IAMRoleName}: Nombre del rol IAM usado en la definición de la tarea. Dejar por defecto.
+\end{itemize}
+
+Tarda un poco en desplegarse, pero cuando termine ya se habrá terminado de crear todo lo necesario para le entrega.
