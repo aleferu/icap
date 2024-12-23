@@ -41,13 +41,6 @@ Parameters:
     Type: String
     Default: LabRole
 
-  AccountID:
-    Description: Account ID
-    Type: String
-    AllowedPattern: ^[0-9]{12}$
-    Default: 592806013290
-    ConstraintDescription: Exactly 12 digits
-
 ###################
 # Resources section
 ###################
@@ -70,7 +63,7 @@ Resources:
             Groups: !Ref ClusterSecurityGroupIds
         InstanceType: t2.micro
         IamInstanceProfile:
-          Arn: !Sub arn:aws:iam::${AccountID}:instance-profile/${IAMProfile}
+          Arn: !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${IAMProfile}
         UserData: !Base64
           Fn::Sub:
             - |-
@@ -138,11 +131,11 @@ Resources:
       Cpu: 250
       Memory: 330
       NetworkMode: awsvpc
-      TaskRoleArn: !Sub arn:aws:iam::${AccountID}:role/${IAMRoleName}
-      ExecutionRoleArn: !Sub arn:aws:iam::${AccountID}:role/${IAMRoleName}
+      TaskRoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${IAMRoleName}
+      ExecutionRoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${IAMRoleName}
       ContainerDefinitions:
         - Name: proy_flask_container
-          Image: !Sub ${AccountID}.dkr.ecr.${AWS::Region}.amazonaws.com/proyrepo:proy_flask_container
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/proyrepo:proy_flask_container
           Cpu: 250
           Memory: 330
           PortMappings:
