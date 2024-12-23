@@ -121,6 +121,5 @@ def page_not_found(_):
     }
     return build_json_response(response_json, http_code)
 
-
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=80)
