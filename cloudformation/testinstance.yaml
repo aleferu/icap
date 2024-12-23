@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Creates the network's infraestructure and creates the ECR repo.
+  Creates an instance that builds and uploads the Docker Container to ECR.
 
 ####################
 # Parameters section
