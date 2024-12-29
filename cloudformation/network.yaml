@@ -240,25 +240,6 @@ Resources:
           SourceSecurityGroupId: !Ref SecurityGroupBalancer
       VpcId: !Ref VPC
 
-  # Para hacer tests, luego se puede quitar porque no se necesita
-  # que pueda ser accedido para absolutamente nada
-
-  TestInstanceSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow SSH and HTTP Ingress from everywhere
-      GroupName: proy-TestInstanceSG
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-      VpcId: !Ref VPC
-
   ## Container Registry
 
   ECRRepo:
@@ -324,9 +305,3 @@ Outputs:
     Value: !Ref SecurityGroupTask
     Export:
       Name: proy-TaskSGId
-
-  TestInstanceSGId:
-    Description: proy-TestInstanceSG ID
-    Value: !Ref TestInstanceSG
-    Export:
-      Name: proy-TestInstanceSGId

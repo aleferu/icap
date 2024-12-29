@@ -30,19 +30,14 @@ Resources:
 
   ## Instance
 
-  # TODO: Cuando sepamos que está bien deberíamos eliminar ese "docker run"
-
   Instance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
       ImageId: ami-08a0d1e16fc3f61ea
-      # KeyName: proy-testkp
       IamInstanceProfile: !Ref IAMProfile
       NetworkInterfaces:
-        - GroupSet:
-            - !ImportValue proy-TestInstanceSGId  # TODO: Eliminar
-          AssociatePublicIpAddress: true
+        - AssociatePublicIpAddress: true
           DeviceIndex: 0
           DeleteOnTermination: true
           SubnetId: !ImportValue proy-PublicSubnet1Id
@@ -203,7 +198,6 @@ Resources:
           " > /etc/profile.d/Dockerfile
 
           sudo docker build -t proy_flask_container /etc/profile.d/
-          sudo docker run -p 80:80 -d proy_flask_container
 
           sudo aws ecr get-login-password --region us-east-1 | sudo docker login --username ${ECRUsername} --password-stdin ${ECRPassword}
           sudo docker tag proy_flask_container ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/proyrepo:proy_flask_container
