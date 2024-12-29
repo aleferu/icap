@@ -5,7 +5,7 @@ set -xe
 
 # Generación del documento
 # Nombre del documento es un placeholder atm
-pdflatex -jobname="proyecto_icap" main.tex
+pdflatex -shell-escape -jobname="proyecto_icap" main.tex
 
 # Done
 printf "\nDONE!\n"

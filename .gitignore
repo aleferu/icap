@@ -11,3 +11,4 @@ venv/
 *.log
 *.out
 *.toc
+latex/_minted-proyecto_icap/

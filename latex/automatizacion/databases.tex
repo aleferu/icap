@@ -1,0 +1,193 @@
+\subsection{databases.yaml}
+
+\begin{minted}[frame=single, linenos, breaklines]{yaml}
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Creates the neccesary bucket, lambda function, DynamoDB table, and SNS topic.
+
+####################
+# Parameters section
+####################
+
+Parameters:
+  IAMRoleName:
+    Description: IAM role used for the lambda function
+    Type: String
+    Default: LabRole
+
+  EmailTarget:
+    Description: Email addresss used by SNS
+    Type: String
+    Default: dayana.quispe@edu.upct.es
+
+###################
+# Resources section
+###################
+
+Resources:
+
+  ## Bucket
+
+  LandingZoneBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: LambdaPermission
+    Properties:
+      BucketName: !Sub proy-landing-${AWS::AccountId}-${AWS::Region}
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt LambdaFunction.Arn
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: LandingZoneBucket
+    Properties:
+      Bucket: !Ref LandingZoneBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${LandingZoneBucket}/*"
+
+  ## Lambda
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: proy-lambda
+      Handler: index.lambda_handler
+      Runtime: python3.12
+      Timeout: 300
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${IAMRoleName}
+      Code:
+        ZipFile: |
+          import json, urllib, boto3, csv
+          from datetime import datetime
+          from decimal import Decimal
+
+          # Connect to AWS S3 and DynamoDB
+          s3 = boto3.resource('s3')
+          dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+          # Connect to SNS 
+          sns = boto3.client('sns') 
+          stack_name = 'proy-databases' 
+          snsTopicArn = [t['TopicArn'] for t in sns.list_topics()['Topics'] 
+                          if stack_name in t['TopicArn']][0] 
+
+          # Connect to the DynamoDB table
+          stats_table = dynamodb.Table('proy-stats')
+
+          def lambda_handler(event, context):
+              # Show the incoming event in the debug log 
+              print('Event received by Lambda: ' + json.dumps(event, indent=2))
+
+              # Extract the bucket name and object key from the event
+              bucket = event['Records'][0]['s3']['bucket']['name']
+              key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'])
+              local_filename = '/tmp/stats.csv'
+
+              # Download the file from S3 to the local filesystem
+              try:
+                  s3.meta.client.download_file(bucket, key, local_filename)
+              except Exception as e:
+                  print(e)
+                  print(f'Error retrieving object {key} from bucket {bucket}. Ensure it exists and is in the same region as this function.')
+                  raise e
+
+              # Process the CSV file
+              row_count = 0
+              try:
+                  with open(local_filename, 'r') as csvfile:
+                      reader = csv.DictReader(csvfile, delimiter=',')
+                      for row in reader:
+                          row_count += 1
+
+                          #Validate and process each row
+                          try:
+                              date_str = row['Fecha']
+                              mean = Decimal(row['Medias'])
+                              deviation = Decimal(row['Desviaciones'])
+
+                              if deviation > 0.5:
+                                  #Message:
+                                  message = (f"Alert: Weekly temperature deviation exceeded threshold with {deviation} deviation, in {date_str}")
+                                  
+                                  print(f"Sending email alert for record on {date_str}")
+
+                                  # Send message to SNS 
+                                  sns.publish( 
+                                      TopicArn=snsTopicArn, 
+                                      Message=message, 
+                                      Subject='Temperature Alert!', 
+                                      MessageStructure='raw' 
+                                  )
+
+                              # Convert the date and calculate YearMonth and Day
+                              date_obj = datetime.strptime(date_str, '%Y/%m/%d')
+                              year_month = 100 * date_obj.year + date_obj.month
+                              day = date_obj.day
+
+                              # Insert into the DynamoDB table
+                              stats_table.put_item(
+                                  Item={
+                                      'YearMonth': year_month,
+                                      'Day': day,
+                                      'Mean': mean,
+                                      'Deviation': deviation
+                                  }
+                              )
+                          except Exception as e:
+                              print(f'Error processing row: {row}. Details: {e}')
+
+              except Exception as e:
+                  print(f'Error reading or processing the CSV file: {e}')
+                  raise e
+
+              # Finished
+              print(f'{row_count} rows processed and inserted into the DynamoDB table.')
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+
+  ## DynamoDB
+
+  # YearMonth | Day | Mean | Deviation
+  #
+  # YearMonth = 100 * Year + Month
+
+  DynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: proy-stats
+      AttributeDefinitions:
+        - AttributeName: YearMonth
+          AttributeType: N
+        - AttributeName: Day
+          AttributeType: N
+      KeySchema:
+        - AttributeName: YearMonth
+          KeyType: HASH   # Partition Key
+        - AttributeName: Day
+          KeyType: RANGE  # Sort Key
+      BillingMode: PAY_PER_REQUEST
+
+  # SNS
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: proy-sns
+      Subscription:
+        - Endpoint: !Ref EmailTarget
+          Protocol: email
+\end{minted}

@@ -1,0 +1,221 @@
+\subsection{cluster.yaml}
+
+\begin{minted}[frame=single, linenos, breaklines]{yaml}
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Creates the ECS Cluster and the ALB.
+
+####################
+# Parameters section
+####################
+
+Parameters:
+
+  LatestECSOptimizedAMI:
+    Description: AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id
+
+  IAMProfile:
+    Description: PREVIOUSLY existing IAM Instance Profile
+    Type: String
+    Default: LabInstanceProfile
+
+  IAMRoleName:
+    Description: IAM role used for task execution
+    Type: String
+    Default: LabRole
+
+###################
+# Resources section
+###################
+
+Resources:
+
+  ## Cluster
+
+  ECSLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    DependsOn: ECSCluster
+    Properties:
+      LaunchTemplateName: proy-ECSLaunchTemplate
+      LaunchTemplateData:
+        ImageId: !Ref LatestECSOptimizedAMI
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            DeleteOnTermination: true
+            Groups: 
+              - !ImportValue proy-TaskSGId
+        InstanceType: t2.micro
+        IamInstanceProfile:
+          Arn: !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${IAMProfile}
+        UserData: !Base64
+          Fn::Sub:
+            - |-
+              #!/bin/bash
+              echo ECS_CLUSTER=${ClusterName} >> /etc/ecs/ecs.config;
+            - ClusterName: proy-cluster
+
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn: ECSCluster
+    Properties:
+      MinSize: 3
+      MaxSize: 9
+      DesiredCapacity: 3
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ECSLaunchTemplate
+        Version: !GetAtt ECSLaunchTemplate.LatestVersionNumber
+      VPCZoneIdentifier:
+        - !ImportValue proy-PrivateSubnet1Id
+        - !ImportValue proy-PrivateSubnet2Id
+        - !ImportValue proy-PrivateSubnet3Id
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: proy-cluster's ECS Instance
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: proy-cluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: disabled
+      ServiceConnectDefaults:
+        Namespace: proy-cluster
+      Tags:
+        - Key: cluster-ecs
+          Value: proy
+
+  EC2CapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref ECSAutoScalingGroup
+        ManagedScaling:
+          Status: ENABLED
+          TargetCapacity: 100
+        ManagedTerminationProtection: DISABLED
+
+  ClusterCPAssociation:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    DependsOn: ECSCluster
+    Properties:
+      Cluster: proy-cluster
+      CapacityProviders:
+        - !Ref EC2CapacityProvider
+      DefaultCapacityProviderStrategy:
+        - Base: 0
+          Weight: 1
+          CapacityProvider: !Ref EC2CapacityProvider
+
+  ## Task
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: proy-task
+      Cpu: 250
+      Memory: 330
+      NetworkMode: awsvpc
+      TaskRoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${IAMRoleName}
+      ExecutionRoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${IAMRoleName}
+      ContainerDefinitions:
+        - Name: proy_flask_container
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/proyrepo:proy_flask_container
+          Cpu: 250
+          Memory: 330
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+
+  ## Service
+
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - ALB
+      - ALBListener
+      - TargetGroup
+    Properties:
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref TaskDefinition
+      LaunchType: EC2
+      DesiredCount: 3
+      LoadBalancers:
+        - ContainerName: proy_flask_container
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !ImportValue proy-PrivateSubnet1Id
+            - !ImportValue proy-PrivateSubnet2Id
+            - !ImportValue proy-PrivateSubnet3Id
+          SecurityGroups:
+            - !ImportValue proy-TaskSGId
+
+  ## Target Group
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: proy-dest-grp
+      Protocol: HTTP
+      Port: 80
+      VpcId: !ImportValue proy-VPCId
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 6
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPath: /health
+      Matcher:
+        HttpCode: 200
+      Tags:
+        - Key: Name
+          Value: proy-dest-grp
+
+  ## ALB
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: proy-alb
+      Scheme: internet-facing
+      SecurityGroups:
+        - !ImportValue proy-ALBSGId
+      Subnets:
+        - !ImportValue proy-PublicSubnet1Id
+        - !ImportValue proy-PublicSubnet2Id
+        - !ImportValue proy-PublicSubnet3Id
+      Type: application
+      IpAddressType: ipv4
+      Tags:
+        - Key: Name
+          Value: proy-alb
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+###################
+# Resources section
+###################
+
+Outputs:
+  ALBDNSName:
+    Description: ALB's DNS
+    Value: !GetAtt ALB.DNSName
+    Export:
+      Name: proy-ALBDNSName
+\end{minted}
