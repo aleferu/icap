@@ -8,24 +8,6 @@ Description: >-
 
 Parameters:
 
-  ClusterSecurityGroupIds:
-    Description: Security group/s for the cluster.
-    Type: CommaDelimitedList
-
-  ALBSecurityGroupIds:
-    Description: Security group/s for the ALB.
-    Type: CommaDelimitedList
-
-  VpcId:
-    Type: String
-    Description: ID of an existing VPC in which to launch your container instances
-    AllowedPattern: ^(?:vpc-[0-9a-f]{8,17}|)$
-    ConstraintDescription: VPC Id must begin with 'vpc-' and have a valid uuid
-
-  SubnetIds:
-    Type: CommaDelimitedList
-    Description: Comma separated list of existing VPC Subnet Ids where ECS instances will run
-
   LatestECSOptimizedAMI:
     Description: AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -60,7 +42,8 @@ Resources:
           - AssociatePublicIpAddress: true
             DeviceIndex: 0
             DeleteOnTermination: true
-            Groups: !Ref ClusterSecurityGroupIds
+            Groups: 
+              - !ImportValue proy-TaskSGId
         InstanceType: t2.micro
         IamInstanceProfile:
           Arn: !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${IAMProfile}
@@ -81,7 +64,10 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref ECSLaunchTemplate
         Version: !GetAtt ECSLaunchTemplate.LatestVersionNumber
-      VPCZoneIdentifier: !Ref SubnetIds
+      VPCZoneIdentifier:
+        - !ImportValue proy-PrivateSubnet1Id
+        - !ImportValue proy-PrivateSubnet2Id
+        - !ImportValue proy-PrivateSubnet3Id
       Tags:
         - Key: Name
           PropagateAtLaunch: true
@@ -161,8 +147,12 @@ Resources:
           TargetGroupArn: !Ref TargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
-          Subnets: !Ref SubnetIds
-          SecurityGroups: !Ref ClusterSecurityGroupIds
+          Subnets:
+            - !ImportValue proy-PrivateSubnet1Id
+            - !ImportValue proy-PrivateSubnet2Id
+            - !ImportValue proy-PrivateSubnet3Id
+          SecurityGroups:
+            - !ImportValue proy-TaskSGId
 
   ## Target Group
 
@@ -172,7 +162,7 @@ Resources:
       Name: proy-dest-grp
       Protocol: HTTP
       Port: 80
-      VpcId: !Ref VpcId
+      VpcId: !ImportValue proy-VPCId
       TargetType: ip
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 6
@@ -193,8 +183,12 @@ Resources:
     Properties:
       Name: proy-alb
       Scheme: internet-facing
-      SecurityGroups: !Ref ALBSecurityGroupIds
-      Subnets: !Ref SubnetIds
+      SecurityGroups:
+        - !ImportValue proy-ALBSGId
+      Subnets:
+        - !ImportValue proy-PublicSubnet1Id
+        - !ImportValue proy-PublicSubnet2Id
+        - !ImportValue proy-PublicSubnet3Id
       Type: application
       IpAddressType: ipv4
       Tags:
@@ -210,3 +204,14 @@ Resources:
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
+
+###################
+# Resources section
+###################
+
+Outputs:
+  ALBDNSName:
+    Description: ALB's DNS
+    Value: !GetAtt ALB.DNSName
+    Export:
+      Name: proy-ALBDNSName

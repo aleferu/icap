@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Creates an instance that builds and uploads the Docker Container to ECR.
+  Creates an instance that builds and uploads the Docker Container to the ECR.
 
 ####################
 # Parameters section
@@ -22,17 +22,6 @@ Parameters:
     Type: String
     Default: 592806013290.dkr.ecr.us-east-1.amazonaws.com
 
-  PublicSubnetId:
-    Description: Valid Subnet ID
-    Type: String
-
-  # TODO: Cuando sepamos que está bien deberíamos eliminar esto
-  # O poner un grupo de seguridad que no sirva de nada (no acepte nada)
-
-  SecurityGroupId:
-    Description: Valid Security Group that accepts SSH and HTTP connections
-    Type: String
-
 ###################
 # Resources section
 ###################
@@ -52,11 +41,11 @@ Resources:
       IamInstanceProfile: !Ref IAMProfile
       NetworkInterfaces:
         - GroupSet:
-            - !Ref SecurityGroupId
+            - !ImportValue proy-TestInstanceSGId  # TODO: Eliminar
           AssociatePublicIpAddress: true
           DeviceIndex: 0
           DeleteOnTermination: true
-          SubnetId: !Ref PublicSubnetId
+          SubnetId: !ImportValue proy-PublicSubnet1Id
       Tags:
         - Key: Name
           Value: proy-TestInstance
