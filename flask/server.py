@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import boto3
-from flask import Flask, Response, request
+from flask import Flask, jsonify, request
 from boto3.dynamodb.conditions import Key
 import statistics
 
@@ -19,25 +19,25 @@ def get_yearmonth():
         return None
     return year * 100 + month
 
-def build_json_response(msg, status):
-    return Response(msg, status=status, mimetype='application/json')
+def build_json_response(dict_response, status):
+    return jsonify(dict_response), status, {'Content-Type': 'application/json'}
 
-def build_ok_json_response(msg):
-    return build_json_response(msg, 200)
+def build_ok_json_response(dict_response):
+    return build_json_response(dict_response, 200)
 
 def get_invalid_args_response():
     http_code = 400  # Bad Request
     response_json = {
         'error': 'Invalid arguments. Make sure \'month\' and \'year\' are provided and are valid.'
     }
-    return build_json_response(str(response_json), http_code)
+    return build_json_response(response_json, http_code)
 
 def get_not_found_response():
     http_code = 404  # Not Found
     response_json = {
         'error': 'Combination of month and year not found in DB.'
     }
-    return build_json_response(str(response_json), http_code)
+    return build_json_response(response_json, http_code)
 
 @app.route('/maxdiff')
 def maxdiff():
@@ -57,9 +57,9 @@ def maxdiff():
 
     temperatures_mean = [t['Mean'] for t in items]
     result = {
-        'result': float(max(temperatures_mean) - min(temperatures_mean))
+        'result': max(temperatures_mean) - min(temperatures_mean)
     }
-    return build_ok_json_response(str(result))
+    return build_ok_json_response(result)
 
 @app.route('/sd')
 def sd():
@@ -79,9 +79,9 @@ def sd():
     
     temperatures_deviation = [t['Deviation'] for t in items]
     result = {
-        'result': float(max(temperatures_deviation))
+        'result': max(temperatures_deviation)
     }
-    return build_ok_json_response(str(result))
+    return build_ok_json_response(result)
 
 @app.route('/temp')
 def temp():
@@ -101,9 +101,9 @@ def temp():
 
     temperatures_mean = [t['Mean'] for t in items]
     result = {
-        'result': float(statistics.mean(temperatures_mean))
+        'result': statistics.mean(temperatures_mean)
     }
-    return build_ok_json_response(str(result))
+    return build_ok_json_response(result)
 
 @app.route('/health')
 def health():
@@ -111,15 +111,15 @@ def health():
       'status': 'UP',
       'message': 'Service is healthy'
     }
-    return build_ok_json_response(str(result))
+    return build_ok_json_response(result)
 
 @app.errorhandler(404)
-def page_not_found(error):
+def page_not_found(_):
     http_code = 404  # Not Found
     response_json = {
         'error': 'URI is not valid. Options: /maxdiff , /sd , /temp'
     }
-    return build_json_response(str(response_json), http_code)
+    return build_json_response(response_json, http_code)
 
 
 if __name__ == '__main__':
