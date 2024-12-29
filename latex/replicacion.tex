@@ -23,10 +23,13 @@ El segundo fichero es \texttt{network.yaml}. Esta plantilla se encarga de crear 
     \item VPC.
     \item Internet Gateway.
     \item Tabla de enrutamiento con acceso a internet.
+    \item Tabla de enrutamiento para las subredes privadas.
     \item Tres subredes públicas, cada una en una zona distinta.
+    \item Tres subredes privadas, cada una en una zona distinta.
+    \item Un GW NAT.
     \item Dos grupos de seguridad, uno para el balanceador de carga y otro para las instancias EC2 y la tarea.
     \item El repositorio ECR que contendrá el contenedor Docker (creado en el siguiente paso).
-    \item Todo lo necesario para que todo lo anterior se complemente adecuadamente.
+    \item Todo lo necesario para que todo lo anterior se despliegue adecuadamente.
 \end{itemize}
 
 Esta plantilla no tiene parámetros, pero sí que tiene salidas. Las salidas son los IDs de la VPC, las subredes, y de los grupos de seguridad.
@@ -35,7 +38,7 @@ Los siguientes pasos necesitan del funcionamiento de esta pila.
 
 \subsection{proy-testinstance}
 
-El tercer fichero es \texttt{testinstance.yaml}. Esta plantilla se encarga de crear una instancia que construirá el contenedor Docker y la subirá al contenedor creado en la plantilla anterior. La plantilla necesita cuatro parámetros:
+El tercer fichero es \texttt{testinstance.yaml}. Esta plantilla se encarga de crear una instancia que construirá el contenedor Docker y la subirá al contenedor creado en la plantilla anterior. La plantilla necesita tres parámetros:
 
 \begin{itemize}
     \item \underline{ECRPassword}: Contraseña utilizada para el acceso a ECR. Normalmente sigue la estructura siguiente:
@@ -44,42 +47,18 @@ El tercer fichero es \texttt{testinstance.yaml}. Esta plantilla se encarga de cr
     \end{itemize}
     \item \underline{ECRUsername}: Igual para todos, así que no habría que cambiarlo. Se ha dejado como parámetro por si esto lo cambian en el futuro.
     \item \underline{IAMProfile}: Perfil IAM para la instancia. El valor por defecto es válido.
-    \item \underline{PublicSubnetId}: Cualquier ID de subred creada en la pila anterior.
 \end{itemize}
 
 Una vez que sea seguro que el contenedor está subido, esta pila se puede eliminar, pues ya habría cumplido su propósito y no se necesita su existencia de aquí en adelante. Eso sí, no continuar con el último paso hasta que el contenedor se haya subido, pues es necesario.
 
 \subsection{proy-cluster}
 
-El cuarto y último fichero es \texttt{cluster.yaml}. Esta plantilla se encarga de crear la tarea, los servicios, el balanceador de carga y el cluster ECS. Tiene varios parámetros, y uno de ellos es un poco diferente al resto:
+El cuarto y último fichero es \texttt{cluster.yaml}. Esta plantilla se encarga de crear la tarea, los servicios, el balanceador de carga y el cluster ECS. Los parámetros se deben dejar por defecto (a no ser de que se sepa lo que se está haciendo).
 
 \begin{itemize}
-    \item \underline{ClusterSecurityGroupIds}: ID del grupo de seguridad que usará el clúster.
-    \begin{itemize}
-        \item Salida \texttt{TaskSGId} de \texttt{proy-network}.
-    \end{itemize}
-
-    \item \underline{ALBSecurityGroupIds}: ID del grupo de seguridad que usará el ALB.
-    \begin{itemize}
-        \item Salida \texttt{ALBSGId} de \texttt{proy-network}.
-    \end{itemize}
-
-    \item \underline{VpcId}: ID de la VPC donde el grupo de destino buscará instancias válidas.
-    \begin{itemize}
-        \item Salida \texttt{VPCId} de \texttt{proy-network}.
-    \end{itemize}
-
-    \item \underline{SubnetIds}: IDs separados por comas de las subredes donde el clúster creará las instancias.
-    \begin{itemize}
-        \item Salidas \texttt{PublicSubnet[123]Id} de \texttt{proy-network}.
-        \item Ejemplo: subnet-xxxx,subnet-yyyy,subnet-zzzz
-    \end{itemize}
-
-    \item \underline{LatestECSOptimizedAMI}: ID de una AMI válida. Dejar por defecto.
-
-    \item \underline{IAMProfile}: Perfil IAM usado para la plantilla de despliegue del clúster. Dejar por defecto.
-
-    \item \underline{IAMRoleName}: Nombre del rol IAM usado en la definición de la tarea. Dejar por defecto.
+    \item \underline{LatestECSOptimizedAMI}: ID de una AMI válida.
+    \item \underline{IAMProfile}: Perfil IAM usado para la plantilla de despliegue del clúster.
+    \item \underline{IAMRoleName}: Nombre del rol IAM usado en la definición de la tarea.
 \end{itemize}
 
 Tarda un poco en desplegarse, pero cuando termine ya se habrá terminado de crear todo lo necesario para le entrega.
