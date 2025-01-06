@@ -1,0 +1,10 @@
+\section{Recursos}
+\begin{itemize}
+    \item \underline{S3}: Uso de un bucket S3 para la ingesta de datos. A él se sube un fichero CSV.
+    \item \underline{Lambda}: Parsea un CSV introducido en un bucket S3 e introduce los datos extraidos a base de datos DynamoDB.
+    \item \underline{DynamoBD}: Aquí se guardan los datos que serán solicitados por el web server. Además, hemos optado por esta opción porque es un PaaS, por tanto no hay que preocuparse del escalado y será tolerante a fallos.
+    \item \underline{EC2}: Lo usamos únicamente para crear el contenedor y subirlo al Elastic Container Registry.
+    \item \underline{ECS}: Utilizado para aportar la escalabilidad y la tolerancia a fallos en 3 subredes privadas (por seguridad) en diferentes zonas de disponibilidad.
+    \item \underline{ALB}: Usado para distribuir las peticiones entre las distintas tareas del cluster, está en 3 subredes públicas cada una en una zona de disponibilidad para tolerancia a fallos.
+    \item \underline{SNS}: Notificación a través de email en el momento de la ingesta de datos si la desviación semanal supera 0.5
+\end{itemize}
