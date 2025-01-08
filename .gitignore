@@ -12,3 +12,4 @@ venv/
 *.out
 *.toc
 latex/_minted-proyecto_icap/
+latex/svg-inkscape/
