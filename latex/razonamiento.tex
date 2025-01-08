@@ -19,7 +19,13 @@
 
     \item \underline{Una instancia para crear el contenedor} porque es la manera más ``automática'' de hacerlo.
 
-    \item \underline{\textit{ECR}} para la imagen Docker que contiene el servidor web (implementado con \textit{Flask} y \textit{boto3}) porque no tenemos más microservicios y con una imagen \textit{Docker} tenemos suficiente.
+    \item \underline{\textit{ECR}} para la imagen Docker que contiene el servidor web porque no tenemos más microservicios y con una imagen \textit{Docker} tenemos suficiente.
+
+    \begin{itemize}
+        \item Para la implementación del servidor web usamos \textit{Flask} y el \textit{SDK boto3} para el acceso al servicio \textit{DynamoDB}. 
+
+        En todos los endpoints se usan los mismos argumentos ``year'' y ``month'' que se combinan para hacer una petición a la base de datos, esta petición se realiza con ``KeyConditionExpression'' porque al utilizarse la clave de particion es más rápido.
+    \end{itemize}
 
     \item \underline{Clúster \textit{ECS}} para obtener una colección de instancias en distintas zonas de disponibilidad.
 
