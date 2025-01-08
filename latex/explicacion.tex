@@ -1,0 +1,31 @@
+\section{Pasos seguidos para la implementación y automatización}
+
+Lo primero que se pensó es en cómo iba a funcionar el servidor web. Originalmente la aplicación que se encargaría del servidor solo iba a tener los tres endpoints que se piden en el enunciado, así que esos fueron los implementados. Sin controlar qué ocurriría con paths que no existen ni nada por el estilo. Además, no teníamos claro cómo iba a funcionar la tabla de \textit{DynamoDB}, así que se dejó un código de ``placeholder'' para la petición a la base de datos.
+
+Una vez que teníamos una primera idea de cómo funcionaría el servidor, nos pusimos a planear cómo funcionaría la tabla de \textit{DynamoDB} con detalle. Tras un intercambio de ideas, llegamos a la conclusión de que subiríamos los datos con la siguiente estructura:
+
+\begin{itemize}
+    \item \underline{Clave de partición}: \texttt{YearMonth}. Este campo es el resultado de sumar el año multiplicado por cien al mes. De esta manera solo accedemos a una partición por consulta.
+    \item \underline{Clave de ordenación}: \texttt{Day}. Este campo es el resultado de extraer el día de la columna ``Fecha'' del CSV. Con la combinación de esta clave de ordenación y la de partición hemos conseguido facilitar la tarea de evitar fechas duplicadas en la tabla de \textit{DynamoDB}, pues solo puede haber una combinación de valores al mismo tiempo y la que se queda es la última que se sube (tal y como se pide en el enunciado).
+    \item \underline{Otros campos}: \texttt{Mean} y \texttt{Deviation}. Los campos que contienen los datos.
+\end{itemize}
+
+Con esto en mente se creó una plantilla de \textit{CloudFormation} que se encarga de crear la tabla, un \textit{Bucket S3} donde subir los CSVs, la función \textit{Lambda} y los permisos necesarios para que todos los servicios puedan comunicarse entre ellos. Además, nos pusimos a trabajar en los detalles del servidor web y de la función \textit{Lambda}. Los cambios al servidor web fueron sencillos, lo que más cambió es la resolución de errores. Con respecto a la función \textit{Lambda}, lo que primero se implementó es el correcto parseo de los datos y la correcta subida de los datos a la tabla de \textit{DynamoDB}. Gracias a nuestra elección de claves, el script solo tenía que encargarse de poner los datos en la tabla, sin preocuparse del contenido de la tabla.
+
+Una vez todo el tema de la base de datos estaba solucionado, implementamos en la función \textit{Lambda} el sistema de alertas con el servicio \textit{SNS}, dando por finalizada la función y la plantilla mencionada anteriormente.
+
+A continuación nos pusimos a crear una plantilla de \textit{CloudFormation} que se encargara de crear la arquitectura de la red y los grupos de seguridad, aunque también se encarga de crear el repositorio \textit{ECR} que contendría la imagen de Docker con el servidor web (más sobre esto más adelante). La red al principio contenía tres subredes públicas y ninguna privada, pues pensábamos proteger las instancias del clúster \textit{ECS} con un grupo de seguridad. Junto con las tres subredes se crearon tres grupos de seguridad:
+
+\begin{itemize}
+    \item Un grupo de seguridad para el balanceador de carga, que se encarga de aceptar las peticiones HTTP.
+    \item Un grupo de seguridad para las instancias del clúster \textit{ECS}, que se encarga de aceptar las peticiones HTTP procedentes del balanceador de carga.
+    \item Un grupo de seguridad para una instancia \textit{EC2} que se crearía en otra plantilla. Se encarga de aceptar peticiones HTTP y SSH.
+\end{itemize}
+
+Seguidamente nos pusimos a trabajar en la instancia de prueba y en su plantilla de \textit{CloudFormation}. Esta instancia se encarga de crear la imagen docker que contiene el servidor web, de subirla al repositorio \textit{ECR}, y de ejecutarla. Uno de nosotros ya hizo algo similar en una entrega de la asignatura, así que fue sencillo adaptarlo para esta implementación. La función Lambda ya sabíamos que funcionaba bien, pero con esta instancia de prueba pudimos comprobar y arreglar el servidor web de una manera sencilla.
+
+Lo siguiente era la combinación de clúster, servicio/tareas y ALB. La implementación de todo fue bastante fluida, lo único que merece la pena nombrar es que como cualquier \textit{path} que no fuese uno de los tres del enunciado devuelve un error HTTP 404, el servicio no aparecía como desplegado nunca. Para solucionarlo, añadimos un nuevo endpoint (\textit{/health}).
+
+Sin embargo, nos encontramos con un error que tratamos varios días de solucionar y es que, por alguna razón, las instancias no eran capaces de conectarse a la base de datos. Tras muchos intentos para solucionarlo, decidimos abandonar esta estructura de red y probar con otra. Los dos cambios fue la creación de tres subredes privadas que alojarían a las instancias \textit{ECS} y la creación de un GW NAT en una de las subredes públicas para darles acceso a la base de datos. Con estos cambios se solucionó el problema.
+
+Una vez lo teníamos todo listo, hicimos una limpieza de las plantillas de \textit{CloudFormation}, eliminando el grupo de seguridad para la instancia \textit{EC2} de prueba y eliminando la línea que se encargaba de ejecutar la imagen de \textit{Docker} en esa instancia de pruebas.

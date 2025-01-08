@@ -1,0 +1,33 @@
+\section{Razonamiento sobre las decisiones de diseño}
+
+\begin{itemize}
+    \item \underline{\textit{Bucket S3 y Lambda}}. El \textit{bucket S3} es nuestra elección para la subida de datos gracias a su sencilla GUI y a su capacidad de crear una función \textit{Lambda} que se encargara de manejar los datos subidos en el mismo momento de subida de los datos.
+
+    \item \underline{\textit{DynamoDB}} fue la base de datos seleccionada. Al principio pensamos que una base de datos SQL sería lo más sencillo, pero la escalabilidad de \textit{DynamoDB} fue lo que primero nos llamó la atención. Seguidamente, al investigarla, llegamos a la conclusión de que con una buena elección de claves (partición y ordenación), conseguiríamos no tener que preocuparnos de datos duplicados (explicación en la sección ``\textit{Pasos seguidos para la implementación y automatización}'').
+
+    \item \underline{SNS} para el manejo de alertas por su sencilla implementación con \textit{boto3}.
+
+    \item \underline{Una VPC} donde poder alojar las subredes públicas.
+
+    \item \underline{Tres subredes públicas} para que el ALB tenga asegurado que al menos una funcione si dos fallan.
+
+    \item \underline{Tres subredes privadas} para que si dos se caen, al menos una funcione.
+
+    \item \underline{Un grupo de seguridad para el ALB} que solo acepte peticiones HTTP porque es lo único que queremos que acepte.
+
+    \item \underline{Un grupo de seguridad para las instancias \textit{ECS}} que solo acepte peticiones HTTP del ALB porque es lo único que queremos que acepte.
+
+    \item \underline{Una instancia para crear el contenedor} porque es la manera más ``automática'' de hacerlo.
+
+    \item \underline{\textit{ECR}} para la imagen Docker porque no tenemos más microservicios y con una imagen \textit{Docker} tenemos suficiente.
+
+    \item \underline{Clúster \textit{ECS}} para obtener una colección de instancias en distintas zonas de disponibilidad.
+
+    \item \underline{ALB} para balancear la carga sobre las instancias \textit{ECS}.
+
+    \item \underline{NAT GW} para que el servidor web tenga acceso a la base de datos.
+
+    \item \underline{Combinación servicio/tarea} porque es una manera sencilla y muy configurable de arrancar el servidor web en las instancias.
+
+    \item \underline{CloudFormation} y no AWS CLI porque es lo más sencillo de utilizar y la interfaz gráfica es muy intuitiva.
+\end{itemize}
