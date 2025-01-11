@@ -15,7 +15,7 @@ Parameters:
   EmailTarget:
     Description: Email addresss used by SNS
     Type: String
-    Default: dayana.quispe@edu.upct.es
+    Default: email@host.com
 
 ###################
 # Resources section

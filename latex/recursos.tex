@@ -1,10 +1,62 @@
 \section{Recursos}
+
 \begin{itemize}
-    \item \underline{S3}: Uso de un bucket S3 para la ingesta de datos. A él se sube un fichero CSV.
-    \item \underline{Lambda}: Parsea un CSV introducido en un bucket S3 e introduce los datos extraidos a base de datos DynamoDB.
-    \item \underline{DynamoBD}: Aquí se guardan los datos que serán solicitados por el web server. Además, hemos optado por esta opción porque es un PaaS, por tanto no hay que preocuparse del escalado y será tolerante a fallos.
-    \item \underline{EC2}: Lo usamos únicamente para crear el contenedor y subirlo al Elastic Container Registry.
-    \item \underline{ECS}: Utilizado para aportar la escalabilidad y la tolerancia a fallos en 3 subredes privadas (por seguridad) en diferentes zonas de disponibilidad.
-    \item \underline{ALB}: Usado para distribuir las peticiones entre las distintas tareas del cluster, está en 3 subredes públicas cada una en una zona de disponibilidad para tolerancia a fallos.
-    \item \underline{SNS}: Notificación a través de email en el momento de la ingesta de datos si la desviación semanal supera 0.5
+    \item \underline{proy-landing-\$\{AWS::AccountId\}-\$\{AWS::Region\}}: Bucket S3 para la ingesta de datos. A él se sube un fichero CSV.
+
+    \item \underline{proy-lambda}: Función \textit{Lambda} que parsea un CSV introducido en el bucket S3 e introduce los datos extraidos a una tabla de \textit{DynamoDB}.
+
+    \item \underline{proy-stats}: Tabla de \textit{DynamoDB}. Aquí se guardan los datos que serán solicitados por el web server. Además, hemos optado por esta opción porque es un PaaS, por tanto no hay que preocuparse del escalado y será tolerante a fallos.
+
+    \item \underline{proy-sns}: Tópico SNS. Notificación a través de email en el momento de la ingesta de datos si la desviación semanal supera $0.5$.
+
+    \item \underline{proy-vpc}: VPC. Contiene toda la infraestructura de red necesaria para el correcto despliegue de la solución.
+
+    \item \underline{proy-igw}: IGW. Ofrece conexión a internet para los servicios de \textit{proy-vpc} que lo requieran.
+
+    \item \underline{proy-prt}: Tabla de enrutamiento que ofrece conexión a internet.
+
+    \item \underline{proy-nat}: NAT GW. Ofrece conexión a internet a las instancias ECS que se encuentran en subredes privadas.
+
+    \item \underline{proy-privateroutetable}: Tabla de enrutamiento que ofrece conexión a \textit{proy-nat}.
+
+    \item \underline{proy-public-subnet-\{1, 2, 3\}}: Subredes públicas, cada una en una zona de disponibilidad diferente. Dan soporte a \textit{proy-nat}, a la instancia que crea la imagen \textit{Docker} y al ALB.
+
+    \item \underline{proy-private-subnet-\{1, 2, 3\}}: Subredes privadas, cada una en una zona de disponibilidad diferente. Dan soporte a las instancias del clúster ECS.
+
+    \item \underline{proy-BalancerSecurityGroup}: Grupo de seguridad que acepta peticiones HTTP en el puerto por defecto. Lo usa el ALB.
+
+    \item \underline{proy-TaskSecurityGroup}: Grupo de seguridad que acepta peticiones HTTP en el puerto por defecto cuando vienen de ALB. Lo usan los servicios ECS y las instancias del clúster ECS.
+
+    \item \underline{proyrepo}: Repositorio ECR que almacena la imagen \textit{Docker}.
+
+    \item \underline{proy-TestInstance}: Instancia EC2. La usamos únicamente para crear el contenedor y subirlo a \textit{proyrepo}.
+
+    \item \underline{proy-ECSLaunchTemplate}: Plantilla de lanzamiento. Usada para el correcto despliegue del clúster ECS.
+
+    \item \underline{proy-cluster-ECSAutoScalingGroup-ID}: Grupo de autoescalado. Usado para el correcto despliegue del clúster ECS.
+
+    \item \underline{proy-cluster-EC2CapacityProvider-ID}: Proveedor de capacidad. Usado para el correcto despliegue del clúster ECS.
+
+    \item \underline{proy-cluster}: Clúster ECS. Utilizado para desplegar instancias ECS en tres subredes privadas (por seguridad), cada una en diferentes zonas de disponibilidad, y para aportar escalabilidad y tolerancia a fallos.
+
+    \item \underline{proy-task}: Definición de Tarea ECS. Define la tarea de la cual se implementarán los servicios ECS.
+
+    \item \underline{proy-cluster-ECSService-ID}: Servicios ECS. Implementaciones de \textit{proy-task}.
+
+    \item \underline{proy-dest-grp}: Grupo de destino. Se encarga de proporcionar instancias al ALB.
+
+    \item \underline{proy-alb}: Application Load Balancer. Usado para distribuir las peticiones entre las distintas tareas del cluster. Está en tres subredes públicas, cada una en una zona de disponibilidad, para tolerancia a fallos.
+
+    \item \underline{proy-databases, proy-network, proy-testinstance, proy-cluster}: Pilas de CloudFormation. Se encargan de desplegar todo.
+
+    \item \underline{Salidas de proy-network}: Utilizadas en otras pilas.
+    \begin{itemize}
+        \item ALBSGId: ID de \textit{proy-BalancerSecurityGroup}.
+        \item TaskSGId: ID de \textit{proy-TaskSecurityGroup}.
+        \item PrivateSubnet\{1, 2, 3\}: IDs de las subredes privadas.
+        \item PublicSubnet\{1, 2, 3\}: IDs de las subredes públicas.
+        \item VPCID: ID de la VPC.
+    \end{itemize}
+
+    \item \underline{ALBDNSName}: Salida de \textit{proy-cluster}. Utilizada para una fácil obtención del DNS del ALB.
 \end{itemize}

@@ -64,6 +64,9 @@ Resources:
     Properties:
       AllocationId: !GetAtt NatGatewayIP.AllocationId
       SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: proy-nat
 
   ## Private Route Table
 
@@ -73,7 +76,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: proy-privateroutetable1
+          Value: proy-privateroutetable
 
   DefaultPrivateRoute:
     Type: AWS::EC2::Route
