@@ -28,7 +28,7 @@ El segundo fichero es \texttt{network.yaml}. Esta plantilla se encarga de crear 
     \item Tres subredes privadas, cada una en una zona distinta.
     \item Un GW NAT.
     \item Dos grupos de seguridad, uno para el balanceador de carga y otro para las instancias EC2 y la tarea.
-    \item El repositorio ECR que contendrá el contenedor Docker (creado en el siguiente paso).
+    \item El repositorio ECR que contendrá la imagen Docker (creada en el siguiente paso).
     \item Todo lo necesario para que todo lo anterior se despliegue adecuadamente.
 \end{itemize}
 
@@ -38,7 +38,7 @@ Los siguientes pasos necesitan del funcionamiento de esta pila.
 
 \subsection{proy-testinstance}
 
-El tercer fichero es \texttt{testinstance.yaml}. Esta plantilla se encarga de crear una instancia que construirá el contenedor Docker y la subirá al contenedor creado en la plantilla anterior. La plantilla necesita tres parámetros:
+El tercer fichero es \texttt{testinstance.yaml}. Esta plantilla se encarga de crear una instancia que construirá la imagen Docker y la subirá al repositorio creado en la plantilla anterior. La plantilla necesita tres parámetros:
 
 \begin{itemize}
     \item \underline{ECRPassword}: Contraseña utilizada para el acceso a ECR. Normalmente sigue la estructura siguiente:
@@ -49,7 +49,7 @@ El tercer fichero es \texttt{testinstance.yaml}. Esta plantilla se encarga de cr
     \item \underline{IAMProfile}: Perfil IAM para la instancia. El valor por defecto es válido.
 \end{itemize}
 
-Una vez que sea seguro que el contenedor está subido, esta pila se puede eliminar, pues ya habría cumplido su propósito y no se necesita su existencia de aquí en adelante. Eso sí, no continuar con el último paso hasta que el contenedor se haya subido, pues es necesario.
+Una vez que sea seguro que la imagen está subida, esta pila se puede eliminar, pues ya habría cumplido su propósito y no se necesita su existencia de aquí en adelante. Eso sí, no continuar con el último paso hasta que la imagen se haya subido, pues es necesario.
 
 \subsection{proy-cluster}
 
